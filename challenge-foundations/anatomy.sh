@@ -14,7 +14,8 @@
 #Challenge 3 (BMP)
     ## Swap the width and height values of Dennis Ritchie (https://www.cs.virginia.edu/~jh2jf/courses/cs2130/spring2023/labs/lab2-hex-editor.html)
     ## Open with editor --> check bpm_struct and individual values --> swap width and height values
-        """s32 width out;
+        """
+    s32 width out;
     s32 height out;
     u64 widthAddr out;
     u64 heightAddr out;
