@@ -1,4 +1,4 @@
-## PartitionEntry Structure
+## Partition Entry Structure
 
 - **bootIndicator (u8)**:  
     A single byte flag that indicates whether the partition is bootable. A value of 0x80 typically marks the partition as active (bootable), while 0x00 means it’s not.
