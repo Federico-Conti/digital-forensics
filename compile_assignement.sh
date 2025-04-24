@@ -1,6 +1,6 @@
-pandoc --output out/ass-filesystem.pdf \
--H styles/preamble.tex \
+pandoc --output assignement/ass-filesystem.pdf \
+-H Theory/styles/preamble.tex \
 --resource-path=.:media \
---verbose src/0.0.md  \
- ./../assignement/filesystem/report.md
+--verbose Theory/src/0.0.md  \
+ assignement/filesystem/report.md
 

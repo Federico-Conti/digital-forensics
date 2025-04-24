@@ -12,14 +12,6 @@ struct PartitionEntry {
     u32 totalSectors;
 };
 
-struct MBR {
-    u8  bootCode[0x1B8];        // 446 bytes
-    u32 diskSignature;          // offset 0x1B8
-    u16 reserved;               // offset 0x1BC (often 0x0000)
-    PartitionEntry partitions[4]; // 4 partition entries
-    u16 signature;              // offset 0x1FE, should be 0x55AA
-};
-
 // ------------------------------
 // GPT Header
 // ------------------------------
@@ -53,14 +45,8 @@ struct GPTPartitionEntry {
     u16 partitionName[36]; // 72 bytes (UTF-16)
 };
 
-MBR protectiveMBR @ 0;
-
-//PRIMARY 
-GPTHeader Primary_GPTHeader @ (1 * 512);
-GPTPartitionEntry Primary_gptPartitions[128] @(2 * 512);
-
 //SECONDARY
 
 // LBA = fdisk -l console.dd
-GPTHeader Secondary_GPTHeader @ (8192-1 * 512);
-GPTPartitionEntry Secondary_gptPartitions[128] @((8192-33) * 512);
+GPTHeader Secondary_GPTHeader @ (8191 * 512);
+GPTPartitionEntry Secondary_gptPartitions[128] @ (Secondary_GPTHeader.partitionEntryLBA * 512);
