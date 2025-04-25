@@ -81,7 +81,7 @@ Findings
 Using ImHex
 
 \begin{center}
-\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.png}
+\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.0.png}
 \end{center}
 
 Analysing the disk image with ImHex revealed further information on the GPT structure:
@@ -150,7 +150,7 @@ Result of GPT Analysis
     > This partition starts at sector 2048, consistent with previous findings from `mmls`.
 
 \begin{center}
-\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/2.png}
+\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.1.png}
 \end{center}
 
 ## Data Recovery

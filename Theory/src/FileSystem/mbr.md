@@ -34,3 +34,24 @@
 
 - **signature (u16)**:  
     A 2-byte signature field at the very end of the MBR, which should always contain the value 0x55AA. This signature is used as a sanity check to verify the integrity of the MBR.
+
+
+
+
+#include <std/mem.pat>
+struct PartitionEntry {
+u8 bootIndicator;
+u8 startCHS[3];
+u8 partitionType;
+u8 endCHS[3];
+u32 relativeSectors;
+u32 totalSectors;
+};
+struct MBR {
+u8 bootCode[0x1B8]; // 446 bytes
+u32 diskSignature; // offset 0x1B8
+u16 reserved; // offset 0x1BC (often 0x0000)
+PartitionEntry partitions[4]; // 4 partition entries, each 16 bytes
+u16 signature; // offset 0x1FE, should be 0x55AA
+};
+MBR mbr @ 0x00;

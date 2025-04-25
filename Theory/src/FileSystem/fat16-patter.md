@@ -21,7 +21,7 @@ struct bootSector {
     u32 volumeSerialNumber;
     char volumeLabel[11];
     char fileSystemType[8];
-    u8  bootCode[0x1BE]; 
+    u8  bootCode[0x1C0]; 
     u16 signature;
 };
 
