@@ -1,6 +1,6 @@
 # console.dd
 
-The purpose of this analysis is to investigate a provided disk image (`console.dd`), which appears to be an unpartitioned FAT filesystem containing only a single JPEG file. There is suspicion that the volume was recently reformatted to conceal prior data. The goal is to reconstruct the original partition scheme and recover as much of the original content as possible.
+The purpose of this analysis is to investigate a provided disk image `console.dd`, which appears to be an unpartitioned FAT filesystem containing only a single JPEG file. There is suspicion that the volume was recently reformatted to conceal prior data. The goal is to reconstruct the original partition scheme and recover as much of the original content as possible.
 
 ## Initial Setup
 
@@ -9,7 +9,9 @@ diff console.dd.sha256 <(sha256sum console.dd)
 
 file console.dd
 # Output:
- console.dd: DOS/MBR boot sector, code offset 0x3c+2, OEM-ID "mkfs.fat", sectors/cluster 4, root entries 512, sectors 8192 (volumes <=32 MB), Media descriptor 0xf8, sectors/FAT 6, sectors/track 32, serial number 0xb9e28db8, unlabeled, FAT (12 bit)
+ console.dd: DOS/MBR boot sector, code offset 0x3c+2, OEM-ID "mkfs.fat", sectors/cluster 4, 
+ root entries 512, sectors 8192 (volumes <=32 MB), Media descriptor 0xf8, sectors/FAT 6, 
+ sectors/track 32, serial number 0xb9e28db8, unlabeled, FAT (12 bit)
 
 fdisk -l console.dd
 # Output:
@@ -32,7 +34,6 @@ strings -e S xbox.jpg | hexdump
     88f83bef7713f5e38aa59da9b71ec53081fe373593758879a4ce06a658ccead0  xbox.jpg
 ```
 
-- The hash verification confirms that the image file `console.dd` is intact and unaltered.
 - The image is detected as a FAT12 filesystem.
 - No active partitions were listed, reinforcing that the current filesystem is unpartitioned.
 - Upon mounting, only a single JPEG file (`xbox.jpg`) was present.
@@ -40,7 +41,7 @@ strings -e S xbox.jpg | hexdump
 
 At this stage, the disk image appears as an unpartitioned FAT12 filesystem with a single valid JPEG file. However, further analysis is required to detect remnants of any previous partitioning.
 
-## Analysis Process
+## Partition Scheme Identification
 
 ```bash
 mmstat console.dd
@@ -70,7 +71,7 @@ img_stat console.dd
     Sector size:    512
 ```
 
-Surprisingly, `mmstat` detected traces of a GUID Partition Table (GPT), which is inconsistent with a simple FAT12 format. This indicates remnants of a previous partition scheme.
+Surprisingly,- `mmstat` detected traces of a GUID Partition Table (GPT), which is inconsistent with a simple FAT12 format. This indicates remnants of a previous partition scheme.
 
 Findings
 
@@ -78,16 +79,17 @@ Findings
 - There’s evidence of a Linux filesystem starting at sector 2048.
 - The presence of unallocated spaces and partition table metadata confirms that the disk was likely reformatted over an existing partitioned structure.
 
-Using ImHex
-
-\begin{center}
-\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.0.png}
-\end{center}
 
 Analysing the disk image with ImHex revealed further information on the GPT structure:
 
 - It appears that the disk was quickly reformatted to Logical Block Addressing (LBA) 0 with a FAT12 filesystem. This action overwritten the primary GPT header, rendering it partially corrupted and unable to identify the original partition entries.
 - Despite this, remnants of the GPT structure are still detectable, suggesting that the disk previously contained a more complex partition scheme.
+
+\begin{center}
+\includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.0.png}
+\captionof{figure}{fake FAT12 partiotion wrap GPT protective MBR}
+\label{fig:hex-analysis-3}
+\end{center}
 
 Given:
 
@@ -96,9 +98,9 @@ Given:
 
 We confirm there are exactly 8192 sectors. According to the GPT standard, the backup GPT header resides at the last sector (LBA 8191).
 
-```c
-#include <std/mem.pat>
+Below is the Pattern used to identify the Secondary GPT Scheme
 
+```c
 struct PartitionEntry {
     u8  bootIndicator;
     u8  startCHS[3];
@@ -109,21 +111,21 @@ struct PartitionEntry {
 };
 
 struct GPTHeader {
-    char signature[8];          // "EFI PART"
-    u32  revision;              // typically 0x00010000
-    u32  headerSize;            // usually 92 (0x5C)
-    u32  headerCRC32;           // CRC32 of the header
-    u32  reserved;              // must be zero
-    u64  currentLBA;            // LBA of this header
-    u64  backupLBA;             // LBA of the backup GPT header
-    u64  firstUsableLBA;
+    char signature[8];         
+    u32  revision;              
+    u32  headerSize;          
+    u32  headerCRC32;          
+    u32  reserved;              
+    u64  currentLBA;            
+    u64  backupLBA;             
+    u64  firstUsableLBA; 
     u64  lastUsableLBA;
-    u8   diskGUID[16];          // 128-bit GUID for the disk
-    u64  partitionEntryLBA;     // LBA where partition entries start
-    u32  numberOfPartitionEntries;  // number of partition entries
-    u32  sizeOfPartitionEntry;      // size of each partition entry (often 128)
-    u32  partitionEntryArrayCRC32;  // CRC32 of the partition entries
-    u8   reserved2[420];        // 512 - 92 = 420 (fills one 512-byte sector)
+    u8   diskGUID[16];          
+    u64  partitionEntryLBA; // redirected to 0
+    u32  numberOfPartitionEntries; 
+    u32  sizeOfPartitionEntry;     
+    u32  partitionEntryArrayCRC32;  
+    u8   reserved2[420];        
 };
 
 struct GPTPartitionEntry {
@@ -132,7 +134,7 @@ struct GPTPartitionEntry {
     u64 firstLBA;
     u64 lastLBA;
     u64 flags;
-    u16 partitionName[36]; // 72 bytes (UTF-16)
+    u16 partitionName[36]; 
 };
 
 //SECONDARY
@@ -146,15 +148,19 @@ Result of GPT Analysis
 
 - The secondary GPT header was successfully located at LBA 8191.
 - The partition entries were parsed, revealing that:
-    > Entry 2 defines a partition of type Linux File System.
-    > This partition starts at sector 2048, consistent with previous findings from `mmls`.
+
+> Entry 2 defines a partition of type Linux File System.
+> This partition starts at sector 2048, consistent with previous findings from `mmls`.
 
 \begin{center}
 \includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.1.png}
+\captionof{figure}{find original partition in third GPT backup entry}
+\label{fig:hex-analysis-3}
 \end{center}
 
 ## Data Recovery
 
+The partition was identified as NTFS, confirming that the original system was likely Microsoft-based.
 
 ``` bash
 fsstat -o 2048 console.dd
@@ -165,8 +171,8 @@ fsstat -o 2048 console.dd
     Total Sector Range: 0 - 6109
 ```
 
-The partition was identified as NTFS, confirming that the original system was likely Windows-based.
-
+Upon inspection of the mounted partition, a file named ps5.jpg was discovered.
+The file ps5.jpg is a valid JPEG image, confirming successful recovery of at least part of the original data stored prior to the reformatting attempt.
 
 ```bash
 dd if=console.dd of=ntfs.dd bs=512 skip=2048 count=6110
@@ -178,8 +184,7 @@ mount -oro  ntfs.dd /mnt/console1
 # SHA ps5.jpg    
     200ff11c196aeeaecd7a4021aa40a47459a252b5776ecdd3104f2e5537eb75a2  ps5.jpg
 ```
-Upon inspection of the mounted partition, a file named ps5.jpg was discovered.
-The file ps5.jpg is a valid JPEG image, confirming successful recovery of at least part of the original data stored prior to the reformatting attempt.
+
 
 ## Advanced File System Analysis
 
@@ -212,7 +217,7 @@ Result:
 
 - The carving process did not detect any deleted files.
 - All files recovered by foremost were consistent with those already identified through filesystem analysis (ps5.jpg and xbox.jpg).
-- No additional user files, fragments, or hidden data were found beyond the active filesystem entri
+- No additional user files, fragments, or hidden data were found beyond the active filesystem entry
 
 ```bash
 88f83bef7713f5e38aa59da9b71ec53081fe373593758879a4ce06a658ccead0  00000049.jpg
@@ -220,14 +225,16 @@ Result:
 ```
 
 For detailed file metadata, the NTFS Master File Table (MFT) was extracted and analyzed using specialized tools.
+
 ```bash
 
 icat -r -o 2048 console.dd 0 > MFT.bin
 MFTECmd.exe -f MFT.bin --csv .\ --csvf console_mft.csv
 
 ```
+
 - The file ps5.jpg was confirmed as an active file (InUse=True) with a creation and modification date of April 11, 2023.
-- No Alternate Data Streams (ADS) or special attributes were detected. (parsing with TimelineExplorer)
+- No Alternate Data Streams (ADS) or special attributes were detected. (parsing with TimelineExplorer.exe)
 
 
 <!-- # Restore GPT from Backup

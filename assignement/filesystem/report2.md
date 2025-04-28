@@ -2,12 +2,14 @@
 
 This section details the forensic analysis conducted on the disk image `corrupted.dd`. The objective was to investigate the file system structure, identify signs of corruption, recover inaccessible data, and locate specific string patterns within the image. 
 
-## Initial Setup
+# Partition Scheme Identification
 
 ```bash
 file corrupted.dd
 # Output:
-    DOS/MBR boot sector, code offset 0x3c+2, OEM-ID "mkfs.fat", Bytes/sector 2048, FATs 3, root entries 512, sectors 720 (volumes <=32 MB), Media descriptor 0xf8, sectors/FAT 1, sectors/track 16, serial number 0xc8269037, label: "BILL", FAT (12 bit)
+    DOS/MBR boot sector, code offset 0x3c+2, OEM-ID "mkfs.fat", Bytes/sector 2048, FATs 3, 
+    root entries 512, sectors 720 (volumes <=32 MB), Media descriptor 0xf8, sectors/FAT 1, 
+    sectors/track 16, serial number 0xc8269037, label: "BILL", FAT (12 bit)
 
 fsstat corrupted.dd
 # Output:
@@ -43,6 +45,8 @@ fsstat corrupted.dd
 
 \begin{center}
 \includegraphics[width=1 \linewidth]{./assignement/filesystem/media/2.0.png}
+\captionof{figure}{analysis of the FAT filesystem}
+\label{fig:hex-analysis-3}
 \end{center}
 
 A sector 0 directly contains a FAT12 Boot Sector, so there is no MBR/GPT table listing partitions, and it is not a bootable image.
@@ -54,7 +58,7 @@ A sector 0 directly contains a FAT12 Boot Sector, so there is no MBR/GPT table l
 
 ## Analysis Process
 
-Using The Sleuth Kit (TSK):
+Using The Sleuth Kit (TSK) to inspect the file system, three `.TXT` files were identified:
 
 ```bash
 fls -r -p corrupted.dd | grep '\.TXT'
@@ -89,6 +93,7 @@ fls -r -p corrupted.dd | grep '\.TXT'
 > Readability:  
     Since this file is deleted, it is expected not to appear in the mounted file system. However, you can recover it using `icat` if the data has not been overwritten.
 
+Using TSK, detailed metadata about the `NETWORKS.TXT` file associated with pseudo-inode 32 was identified.
 
 ```bash
 istat corrupted.dd 32
@@ -115,6 +120,8 @@ xxd -s $((2048)) -l 2048 corrupted.dd | less
 
 \begin{center}
 \includegraphics[width=1 \linewidth]{./assignement/filesystem/media/2.1.png}
+\captionof{figure}{analysis of the first FAT}
+\label{fig:hex-analysis-3}
 \end{center}
 
 A known good copy of FAT2 was used to restore FAT0:
@@ -137,7 +144,7 @@ e9207be4a1dde2c2f3efa3aeb9942858b6aaa65e82a9d69a8e6a71357eb2d03c  NETWORKS.TXT
 
 ### zxgio
 
-Inside the file `corrupted.dd`, there are some occurrences of the string `zxgio` (without quotes). 
+Inside the file `corrupted.dd`, there are some occurrences of the string `zxgio` (without quotes).
 Below is the analysis:
 
 ```bash
@@ -213,4 +220,6 @@ Results:
 
 \begin{center}
 \includegraphics[width=0.5 \linewidth]{./assignement/filesystem/media/2.2.png}
+\captionof{figure}{gif found in Unlocated Space}
+\label{fig:hex-analysis-3}
 \end{center}
