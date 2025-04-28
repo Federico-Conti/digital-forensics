@@ -1,6 +1,6 @@
 # corrupted.dd
 
-This report details the forensic analysis conducted on the disk image `corrupted.dd`. The objective was to investigate the file system structure, identify signs of corruption, recover inaccessible data, and locate specific string patterns within the image. 
+This section details the forensic analysis conducted on the disk image `corrupted.dd`. The objective was to investigate the file system structure, identify signs of corruption, recover inaccessible data, and locate specific string patterns within the image. 
 
 ## Initial Setup
 
@@ -64,27 +64,30 @@ fls -r -p corrupted.dd | grep '\.TXT'
     r/r * 36:       _EADME.TXT
 ```
 
-1. **HOMEWORK.TXT** (pseudo-inode 45)
-    > Status: Allocated  
-    > Size: 6 bytes  
-    > Sector: 619  
-    > Readability:  
-        Can read it both by using `icat` and by mounting the image.
+**HOMEWORK.TXT** (pseudo-inode 45)
 
-2. **NETWORKS.TXT** (pseudo-inode 32)
-    > Status: Allocated  
-    > Size: 17,465 bytes  
-    > Starting Sector: 345  
-    > Readability:  
-        Cannot read it by mounting the image, but you can read it using `icat`.  
-        Explanation: This indicates that the mounted file system has issues following the cluster chain, likely due to corruption in the FAT.
+> Status: Allocated  
+> Size: 6 bytes  
+> Sector: 619  
+> Readability:  
+    Can read it both by using `icat` and by mounting the image.
 
-3. **EADME.TXT** (pseudo-inode 36)
-    > Status: Deleted  
-    > Size: 60,646 bytes  
-    > Sectors: 457 to 486  
-    > Readability:  
-        Since this file is deleted, it is expected not to appear in the mounted file system. However, you can recover it using `icat` if the data has not been overwritten.
+**NETWORKS.TXT** (pseudo-inode 32)
+
+> Status: Allocated  
+> Size: 17,465 bytes  
+> Starting Sector: 345  
+> Readability:  
+    Cannot read it by mounting the image, but you can read it using `icat`.  
+    Explanation: This indicates that the mounted file system has issues following the cluster chain, likely due to corruption in the FAT.
+
+**EADME.TXT** (pseudo-inode 36)
+
+> Status: Deleted  
+> Size: 60,646 bytes  
+> Sectors: 457 to 486  
+> Readability:  
+    Since this file is deleted, it is expected not to appear in the mounted file system. However, you can recover it using `icat` if the data has not been overwritten.
 
 
 ```bash
@@ -101,7 +104,7 @@ istat corrupted.dd 32
 
 ### Fix FAT Table
 
-Objective: Rebuild the cluster chain in the FAT for corrupted files, particularly for `NETWORKS.TXT`.
+Rebuild the cluster chain in the FAT for corrupted files, particularly for `NETWORKS.TXT`.
 
 Analyzing the first FAT it was discovered that FAT0 was overwritten with non-FAT data, likely a fragment of a GIF file.
 
@@ -121,7 +124,7 @@ cp corrupted.dd corrupted_fixed.dd
 dd if=corrupted_fixed.dd of=corrupted_fixed.dd bs=2048 skip=3 seek=1 count=1 conv=notrunc
 ```
 
-After fixing:
+After fixing FAT:
 
 - The cluster chain has been rebuilt.  
 - Both `.TXT` files can now be mounted correctly, allowing the recovery of the hash for `NETWORKS.TXT`.
