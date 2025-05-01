@@ -43,6 +43,8 @@ At this stage, the disk image appears as an unpartitioned FAT12 filesystem with 
 
 ## Partition Scheme Identification
 
+Using The Sleuth Kit (TSK)
+
 ```bash
 mmstat console.dd
 # Output:
@@ -71,7 +73,7 @@ img_stat console.dd
     Sector size:    512
 ```
 
-Surprisingly,- `mmstat` detected traces of a GUID Partition Table (GPT), which is inconsistent with a simple FAT12 format. This indicates remnants of a previous partition scheme.
+Surprisingly, `mmstat` detected traces of a GUID Partition Table (GPT), which is inconsistent with a simple FAT12 format. This indicates remnants of a previous partition scheme.
 
 Findings
 
@@ -144,13 +146,13 @@ GPTHeader Secondary_GPTHeader @ (8191 * 512);
 GPTPartitionEntry Secondary_gptPartitions[128] @ (Secondary_GPTHeader.partitionEntryLBA * 512);
 ```
 
-Result of GPT Analysis
+Result of GPT Partition Scheme Analysis
 
 - The secondary GPT header was successfully located at LBA 8191.
 - The partition entries were parsed, revealing that:
 
-> Entry 2 defines a partition of type Linux File System.
-> This partition starts at sector 2048, consistent with previous findings from `mmls`.
+  - Entry 3 defines a partition of type Linux File System.
+  - This partition starts at sector 2048, consistent with previous findings from `mmls`.
 
 \begin{center}
 \includegraphics[width=1 \linewidth]{./assignement/filesystem/media/1.1.png}
@@ -172,15 +174,17 @@ fsstat -o 2048 console.dd
 ```
 
 Upon inspection of the mounted partition, a file named ps5.jpg was discovered.
+
 The file ps5.jpg is a valid JPEG image, confirming successful recovery of at least part of the original data stored prior to the reformatting attempt.
 
 ```bash
 dd if=console.dd of=ntfs.dd bs=512 skip=2048 count=6110
 
 mount -oro  ntfs.dd /mnt/console1
+
+file ps5.jpg
 # Output:
-    file ps5.jpg
-    ps5.jpg: JPEG image data, JFIF standard 1.01, resolution (DPI), density 72x72, segment length 16, baseline, precision 8, 400x225, components 3
+    ps5.jpg: JPEG image data, JFIF standard 1.01 ...
 # SHA ps5.jpg    
     200ff11c196aeeaecd7a4021aa40a47459a252b5776ecdd3104f2e5537eb75a2  ps5.jpg
 ```

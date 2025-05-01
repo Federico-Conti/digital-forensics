@@ -52,7 +52,7 @@ mmcat strange.dd 4 > microsoftdata.dd
 ```
 
 The `disktype` command reveals something unusual about this partition:
-Both file systems appear to coexist within the same partition space of ~8 GiB.
+both file systems appear to coexist within the same partition space of ~8 GiB.
 
 ```bash
 fsstat microsoftdata.dd
@@ -75,6 +75,7 @@ Regular file, size 7.999 GiB (8588868608 bytes)
  ```
 
 Potential Scenarios:
+
 - Possible file system-in-file system nesting (e.g., FAT embedded within an EXT partition).
 - Hidden Volumes: There could be a FAT file system hidden at a specific offset within the EXT3 partition.
 
@@ -82,14 +83,14 @@ Potential Scenarios:
 
 The analysis confirms the following:
 
-1. Recognizes the FAT32 boot sector at the start of the partition.
+1. Recognizes the FAT32 boot sector at the start of the partition
     - FAT32 characteristics:
         - Sector size: 2048 bytes.
-        - Contains only 1 FAT table instead of the standard 2.
-        - No backup boot sector is present.
-        - Volume label: `"FAT32LABEL"`.
+        - Contains only 1 FAT table instead of the standard 2
+        - No backup boot sector is present
+        - Volume label: `"FAT32LABEL"`
 
-2. An Ext3 SuperBlocks file system resides in the 1024 offset:
+2. An Ext3 SuperBlocks file system resides in the 1024 offset (as required by the standard)
 
 \begin{center}
 \includegraphics[width=1 \linewidth]{./assignement/filesystem/media/3.3.png}
@@ -107,33 +108,23 @@ This dual file system setup demonstrates forensic techniques (TSK), making it ch
 
 
 
-After some attempts to get some hints from strings, here’s probably the more informative combination of parameters:
+After some attempts to get some hints from strings command:
 
  ```bash
- strings --radix=d microsoftdata.dd | grep -i -E 'ext3|hint|jpg'
+ strings --radix=d microsoftdata.dd | grep -i -E 'jpg|hint'
 
  #Output
-    1144 ext3label
     4206644 ext3_nashorn_1.jpg
     4206672 ext3_nashorn_2.jpg
     4206700 ext3_nashorn_3.jpg
     4268084 ext3_nashorn_1.jpg
     4268112 ext3_nashorn_2.jpg
-    4273272 ext3label
     4321332 ext3_nashorn_1.jpg
     4321360 ext3_nashorn_2.jpg
     4321388 ext3_nashorn_3.jpg
     73506912 FAT32_~1JPG
     73507008 FAT32_~2JPG
     73507104 FAT32_~3JPG
-    134217848 ext3label
-    402653304 ext3label
-    671088760 ext3label
-    939524216 ext3label
-    1207959672 ext3label
-    3355443320 ext3label
-    3623878776 ext3label
-    6576668792 ext3label
     6576670208 There is a  hint here
  ```
 
@@ -250,12 +241,13 @@ fsstat -f fat microsoftdata.dd
     Total Directories: 2
     ....
   ``` 
-- he FS size is 4096 * 2096890 = 8588861440 bytes.
+
+- The FS size is 4096 * 2096890 = 8588861440 bytes.
 
 *To protect FAT32 data from being overwritten by the Ext3 file system, the group descriptor table, the superblock (and their copies) and the respective block bitmaps had to be manipulated. Vice versa, clusters occupied by the Ext3 file system had to be marked as bad in the FAT.*
 
 - Ext3 avoids overwriting Fat32 by marking 0 free blocks in the first group.
-- all groups have almost all free blocks except for the first one, where there are no free blocks.
+- All groups have almost all free blocks except for the first one, where there are no free blocks.
 
 Summary
 
@@ -325,5 +317,3 @@ dd if=/dev/zero of=microsoftdata_clean.dd bs=512 count=1 conv=notrunc
 
 sudo mount -o ro,loop microsoftdata_clean.dd /mnt/strange
 ```
-
-

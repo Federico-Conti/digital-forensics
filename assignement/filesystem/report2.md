@@ -2,7 +2,9 @@
 
 This section details the forensic analysis conducted on the disk image `corrupted.dd`. The objective was to investigate the file system structure, identify signs of corruption, recover inaccessible data, and locate specific string patterns within the image. 
 
-# Partition Scheme Identification
+## Partition Scheme Identification
+
+Using The Sleuth Kit (TSK) and analysing with ImHex
 
 ```bash
 file corrupted.dd
@@ -54,7 +56,7 @@ A sector 0 directly contains a FAT12 Boot Sector, so there is no MBR/GPT table l
 - **Volume Label**: `BILL`
 - **Sector Size**: 2048
 - **Cluster Size**: 2048
-- **Num FATs**: 3
+- **Num FATs**: 3 (strange...)
 
 ## Analysis Process
 
@@ -68,7 +70,7 @@ fls -r -p corrupted.dd | grep '\.TXT'
     r/r * 36:       _EADME.TXT
 ```
 
-**HOMEWORK.TXT** (pseudo-inode 45)
+1. \textcolor{blue}{HOMEWORK.TXT}(pseudo-inode 45)
 
 > Status: Allocated  
 > Size: 6 bytes  
@@ -76,16 +78,16 @@ fls -r -p corrupted.dd | grep '\.TXT'
 > Readability:  
     Can read it both by using `icat` and by mounting the image.
 
-**NETWORKS.TXT** (pseudo-inode 32)
+2. \textcolor{blue}{NETWORKS.TXT} (pseudo-inode 32)
 
 > Status: Allocated  
 > Size: 17,465 bytes  
-> Starting Sector: 345  
+> Sector: 345  
 > Readability:  
     Cannot read it by mounting the image, but you can read it using `icat`.  
     Explanation: This indicates that the mounted file system has issues following the cluster chain, likely due to corruption in the FAT.
 
-**EADME.TXT** (pseudo-inode 36)
+3. \textcolor{blue}{EADME.TXT} (pseudo-inode 36)
 
 > Status: Deleted  
 > Size: 60,646 bytes  
@@ -107,7 +109,7 @@ istat corrupted.dd 32
     Sectors: 345
 ```
 
-### Fix FAT Table
+## Fix FAT Table
 
 Rebuild the cluster chain in the FAT for corrupted files, particularly for `NETWORKS.TXT`.
 
@@ -142,9 +144,10 @@ sha256sum *.TXT
 e9207be4a1dde2c2f3efa3aeb9942858b6aaa65e82a9d69a8e6a71357eb2d03c  NETWORKS.TXT
 ```
 
-### zxgio
+## zxgio
 
 Inside the file `corrupted.dd`, there are some occurrences of the string `zxgio` (without quotes).
+
 Below is the analysis:
 
 ```bash
@@ -155,7 +158,7 @@ strings -t d corrupted.dd | grep -E zxgio
 1267712 zxgio
 ```
 
-From fsstat on intact image:
+From `fsstat` on intact image:
 
 | **Offset (byte)** | **Sector** | **File System Area**         |
 |--------------------|------------|------------------------------|
@@ -194,7 +197,7 @@ From fsstat on intact image:
             tware....zxgio..
 ```
 
-### Unlocated Space
+## Unlocated Space
 
 The image `corrupted.dd` has a size of 721 sectors, while the FAT12 file system only uses sectors 0-719. Sector 720, being outside the file system, was extracted and analyzed.
 
