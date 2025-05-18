@@ -1,5 +1,5 @@
-pandoc --output assignement/ass-filesystem.pdf \
+pandoc --output assignement/ass-network.pdf \
 -H Theory/styles/preamble.tex \
 --resource-path=.:media \
---verbose Theory/src/0.0.md  assignement/filesystem/report1.md assignement/filesystem/report2.md assignement/filesystem/report3.md
-
+# --verbose Theory/src/0.0.md  assignement/filesystem/report1.md assignement/filesystem/report2.md assignement/filesystem/report3.md
+--verbose Theory/src/0.0.md  assignement/network/report.md 
