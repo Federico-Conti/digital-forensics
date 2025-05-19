@@ -1,38 +1,37 @@
-# Identificazione e mappatura degli IP principali ("Main Players")
+# Identification and Mapping of Main IPs ("Main Players")
 
-## Analisi statistica IP
+## IP Statistica Analysis
 
-| IP A            | IP B            | Packets | Note                                                   |
-|------------------|-----------------|---------|--------------------------------------------------------|
-| 192.168.100.101 | 10.0.100.100    | 3571    | traffico HTTP tra srv-www e srv-intranet              |
-| 10.0.200.100    | 192.168.100.100 | 3136    |  traffico da client verso DMZ (srv-www)             |
-| 192.168.100.100 | 203.0.113.113   | 2952    | DNS verso provider-ns (trusted)                      |
-| 58.16.78.90     | 192.168.100.101 | 2751    | traffico da IP esterno (simulated Internet)           |
-| 58.16.122.33    | 192.168.100.101 | 1648    | altro traffico significativo dall'esterno            |
+| IP A            | IP B            | Packets | Notes                                                 |
+|------------------|-----------------|---------|-------------------------------------------------------|
+| 192.168.100.101 | 10.0.100.100    | 3571    | HTTP traffic between srv-www and srv-intranet         |
+| 10.0.200.100    | 192.168.100.100 | 3136    | traffic from client to DMZ (srv-www)                 |
+| 192.168.100.100 | 203.0.113.113   | 2952    | DNS to provider-ns (trusted)                         |
+| 58.16.78.90     | 192.168.100.101 | 2751    | traffic from external IP (simulated Internet)        |
+| 58.16.122.33    | 192.168.100.101 | 1648    | other significant traffic from external sources      |
 
-Gli IP 58.16.78.90, 58.16.122.33, 58.16.120.39 e simili appartengono alla simulated Internet.
+The IPs 58.16.78.90, 58.16.122.33, 58.16.120.39, and similar belong to the simulated Internet.
 
-- Si osservano frequenti connessioni in ingresso verso la porta 80 di 192.168.100.101 (srv-www), provenienti da questi IP esterni.
+- Frequent incoming connections to port 80 of 192.168.100.101 (srv-www) are observed, originated from these external IPs.
 
+IPs such as 104.85.x.x, 104.18.x.x, 34.x.x.x, 13.x.x.x are associated with cloud services.
 
-Gli IP come 104.85.x.x, 104.18.x.x, 34.x.x.x, 13.x.x.x sono riconducibili a servizi cloud.
+The address 10.0.200.100 is linked to the most active user within the simulated network, with access to numerous popular sites and services, including Pinterest, eBay, Aranzulla, MyPersonalTrainer, etc.
 
-L’indirizzo 10.0.200.100 risulta associato all’utente più attivo all’interno della rete simulata, con accessi a numerosi siti e servizi popolari, tra cui: Pinterest, eBay, Aranzulla, MyPersonalTrainer, ecc.
+- Example of filter used: `ssl.handshake.extensions_server_name && ip.addr == 104.85.8.193`
 
-- Esempio di filtro utilizzato: `ssl.handshake.extensions_server_name && ip.addr == 104.85.8.193`
+## TCP Statistica Analysis
 
-## Analisi statistica TCP
+TCP statistics confirm the following relevant patterns:
 
-Le statistiche TCP confermano i seguenti pattern rilevanti:
+1. Suspicious communications originated from 192.168.100.101 on high ports (52926, 52944, 52950, 52974, 52934, 52960) directed to 10.0.100.100:80
 
-1. Comunicazioni sospette originate da 192.168.100.101 su porte elevate (52926, 52944, 52950, 52974, 52934, 52960) dirette verso 10.0.100.100:80
+- Observed flows: `tcp.stream eq 250,255,256,260,253,259`
 
-- Flussi osservati: `tcp.stream eq 250,255,256,260,253,259`
-   
-2. Numerose connessioni da IP esterni (es. 58.16.78.90, 58.16.122.33, 58.16.119.40, 58.16.120.x) verso 192.168.100.101:80 (srv-www interno)
+2. Numerous connections from external IPs (e.g., 58.16.78.90, 58.16.122.33, 58.16.119.40, 58.16.120.x) to 192.168.100.101:80 (internal srv-www)
 
-    - In particolare, l’IP 58.16.78.90 appare con centinaia di connessioni e sessioni HTTP caratterizzate da payload bidirezionali significativi
-    - Esempi di flussi: `tcp.stream eq 461,441,132,137,298`
+    - In particular, the IP 58.16.78.90 appears with hundreds of connections and HTTP sessions characterized by significant bidirectional payloads.
+    - Examples of flows: `tcp.stream eq 461,441,132,137,298`
 
 
 

