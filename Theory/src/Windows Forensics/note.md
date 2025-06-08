@@ -3,19 +3,19 @@
 ## FTK (Forensic Toolkit)
 
 - **Partition Structure**:  
-    The HP computer includes a recovery partition, resulting in multiple partitions.
+    Being an HP computer, the OS included a recovery partition, resulting in multiple partitions.
 
 - **Key Files in [root] (equivalent to C: drive)**:
-    - `pagefile.sys`: A paging file used by the OS. It may contain fragments of memory, such as URLs or other data, paged to disk during system operation.  
+    - `pagefile.sys`: A paging file used by the OS. It can contain fragments of memory, such as URLs or other data, that were paged to disk during system operation.
         > Example: If a browser is active and part of its memory is paged to disk, the `.onion` URL being accessed might end up in `pagefile.sys`.
-    - `hiberfile.sys`: A hibernation file containing a snapshot of the RAM at the moment the system enters hibernation.
+    - `hiberfile.sys`: A hibernation file that contains a snapshot of the RAM at the moment the system enters hibernation.
 
 - **Primary Investigation Areas**:
     - **`/Windows`**: Contains OS executables, registries, and other system files.
         - `/System32/config`: Windows registry files.
-        - `/prefetch`: Optimizes application startup by preloading necessary DLLs.  
-            > Note: Prefetch files are created only if the executable has been run and are not deleted automatically.
-    - **`/Users`**: Contains subfolders for each user.
+        - `/prefetch`: A mechanism to optimize application startup by preloading necessary DLLs.  
+            > Note: A prefetch file is created only if the executable has been run. Prefetch files are not deleted automatically.
+    - **`/Users`**: Contains a subfolder for each user.
         - `/AppData`: Logs user activities.
             - `/Roaming/Microsoft/Windows/`: Tracks recent user activities.
                 - `.lnk` files: Shortcut files pointing to other files.  
@@ -29,6 +29,10 @@
 
 ---
 
+Note: the LAST MODIFIED is also when a file finishes downloading
+
+---
+
 ## Arsenal Image Mounter (AIM)
 
 - **Purpose**: Treats a forensic image as if it were a physical disk. Acts as middleware for Windows.
@@ -39,6 +43,9 @@
 ---
 
 ## Windows Registry
+
+Ccliner è un tool per cancellare tutto il registro.
+
 
 - **Overview**: Every action on Windows modifies a value in a registry hive.  
     > Example: A damaged registry file might result in the error "Cannot find the filesystem."
@@ -54,7 +61,7 @@
 - `HKLM\SAM`: `%WINDIR%\System32\config\SAM`
 - `HKLM\SECURITY`: `%WINDIR%\System32\config\SECURITY`
 - `HKLM\SOFTWARE`: `%WINDIR%\System32\config\SOFTWARE`
-    > Contains OS type and installation date.
+    > tipo di sistema operativo e qunado è stato installato
 - `HKLM\SYSTEM`: `%WINDIR%\System32\config\SYSTEM`  
     > Contains system-wide settings, such as timezone configurations.
 
@@ -71,29 +78,57 @@
 
 - **Functionality**: Allows viewing all information stored in Windows registry files.
 - **Features**: Displays a "Last Write Timestamp" column, indicating when a file was last accessed or modified.
+- All Date are in UTC Format 
 
-**Accessing Host PC Hives**  
+**Accessing Host PC Hives**
 To view the host PC's hives, ensure the application is running in administrator mode.
 
-**Handling Registry Files from External Images**  
+**Handling Registry Files from External Images**
 When retrieving registry files from external images, you might encounter the following error message:  
 **"Primary and secondary sequence numbers do not match!"**
 
-Cause:  
-This error occurs when the registry file contains uncommitted data stored in transaction logs. A mismatch indicates the file was not closed properly, possibly due to an unexpected shutdown or system crash.
+Cause:
 
-Steps to Resolve:  
-1. Click **Yes** when prompted.  
-    - The system will automatically apply the transaction log data to the hive file, restoring it to the most recent consistent state.
-2. Select the transaction log files:
-    - `SOFTWARE.LOG2`
-    - `SOFTWARE.LOG1`
-3. Specify the path to save the cleaned hive file (e.g., `SOFTWARE.clean`).
-4. When prompted:
-    - **"Do you want to load the updated drive?"** Select **Yes**.
-    - **"Do you want to load the dirty hive?"** Select **No**.
+    This error occurs when the registry file contains uncommitted data (not yet written permanently) stored in transaction logs. The primary and secondary sequence numbers are used to ensure file integrity. A mismatch indicates that the file was not closed properly, possibly due to an unexpected shutdown or system crash.
 
-Next time, directly upload the `.clean` file.
+Steps to Resolve:
+
+    1. Click **Yes** when prompted.  
+        - The system will automatically apply the transaction log data to the hive file, restoring it to the most recent consistent state.
+
+    2. A dialog box will appear, prompting you to select the transaction log files.  
+        - Choose the following files:
+        - `SOFTWARE.LOG2`
+        - `SOFTWARE.LOG1`
+
+    3. Specify the path to save the cleaned hive file (e.g., `SOFTWARE.clean`).
+
+    4. "Do you eant to laod the updated dirve?"
+        -  select **Yes**
+
+    4. **"Do you want to load the dirty hive?"**
+        -  select **No** 
+
+
+Next time you can directly upload the .clean file
+
+- **User Information**:
+  - Found in `%WINDIR%\System32\config\SAM`
+  - Default Windows includes 4 well-known users
+  - Additional created users start from ID 1001
+  
+  | User ID | User Name |
+  |---------|-----------|
+  | 500     | Admin_IIT |
+  | 501     | Guest |
+  | 503     | DefaultAccount |
+  | 504     | WDAGUtilityAccount |
+  | 1001    | UsrICT |
+
+- **Timeline Construction**:
+  - Important to use correct timestamp format
+  - Information is stored in UTC, not local time
+  - Local time is calculated as UTC +/- timezone offset
 
 ---
 
@@ -101,63 +136,36 @@ Next time, directly upload the `.clean` file.
 
 1. `SOFTWARE\Microsoft\Windows NT\CurrentVersion`:
     - Contains OS version details, build information, and installation dates.
-    - **Unix Epoch Format**: Represents installation date/time as seconds since January 1, 1970, 00:00:00 UTC.
-    - **Windows File Time Format**: Microsoft's proprietary timestamp format, measuring 100-nanosecond intervals since January 1, 1601, 00:00:00 UTC.
+    - **Unix Epoch Format**:  
+      Represents installation date/time as seconds since January 1, 1970, 00:00:00 UTC. Commonly used in system logs and databases.
+    - **Windows File Time Format**:  
+      Microsoft's proprietary timestamp format, measuring 100-nanosecond intervals since January 1, 1601, 00:00:00 UTC. Used in the registry for the "InstallTime" value.
 
 2. `SYSTEM\Select`:
-    - Contains values such as:
-        - `Current`: Indicates the currently active `ControlSet`.
-        - `Default`: Indicates the `ControlSet` to be used at the next boot.
-        - `LastKnownGood`: Indicates the `ControlSet` used during the last successful configuration.
+    - The `Select` key contains values such as:
+      - `Current`: Indicates the currently active `ControlSet`.
+      - `Default`: Indicates the `ControlSet` to be used at the next boot.
+      - `LastKnownGood`: Indicates the `ControlSet` used during the last successful configuration.
+      - `Failed`: Indicates a `ControlSet` that failed to work correctly.
 
-3. `SYSTEM\CurrentControlSet\Services`:
+3. `SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName`:
+    - Stores the computer's name.
+
+4. `SYSTEM\CurrentControlSet\Control\TimeZoneInformation`:
+    - Contains timezone configuration details.
+
+5. `SYSTEM\CurrentControlSet\Services`:
     - Each subkey represents a system service or driver.  
-        - Contains values specifying:
-            - Executable path.
-            - Startup type (automatic, manual, or disabled).
-            - Dependencies on other services.
+      - Contains values specifying:
+         - The executable path of the service/driver.
+         - Startup type (automatic, manual, or disabled).
+         - Dependencies on other services.
+         - Service/driver-specific parameters.
 
-4. `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`:
-    - Lists all installed programs that can be uninstalled.
-    - Contains installation path information.
+**Network TCP/IP Parameters**:  
+    Tracks IP assignments to the machine when connecting to different networks.
 
----
-
-## User Activities
-
-1. `NTUSER.DAT\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs`  
-   - Tracks recently opened files by the user.  
-   - Contains an `MRUList` value that tracks the order in which files were accessed.
-
-2. `NTUSER.DAT\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist`  
-   - Tracks executables run by the user.  
-   - Tracks detailed information about applications executed by each user.
-
----
-
-## LNK Files / Shortcut Files
-
-- **Overview**: `.lnk` files are pointers saved in files with the `.lnk` extension.  
-    - Automatically created by the OS for non-executable files opened by the user.
-    - Persist even if the target file is deleted.
-
-- **Content**:
-    - Target drive type (Fixed, Removable, Network).
-    - Path of the target file.
-    - Target file MAC timestamps (Modified, Accessed, Created).
-
----
-
-## Jumplists
-
-- **Overview**: Windows Taskbar feature introduced in Windows 7/8/10.  
-    - Useful for accessing recently opened files, folders, or websites.
-    - Contains more references to opened files than "RecentDocs."
-
-- **Storage**:
-    - `%USERS%\<username>\AppData\Roaming\Microsoft\Windows\Recent`
-    - Contains two subfolders:
-        - `AutomaticDestinations`: Sequence of `.lnk` files added whenever an app
+6. `SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces`:
     - Contains a subkey for each network adapter (e.g., Ethernet, Wi-Fi).
     - Stores TCP/IP configuration details for each interface.
     - Tracks the last assigned IP address for each interface.
@@ -177,6 +185,7 @@ Next time, directly upload the `.clean` file.
     > **Note**: The `FIRST connect local` value indicates the local date and time (PC timezone) when the computer first connected to a network.  
     > This is **not** in UTC format.  
     > Always verify the timezone of timestamps when constructing event timelines to avoid misinterpretation.
+(e.g UTC = LOCAL+5h)
 
 **How Wi-Fi Networks Work**
 
@@ -190,6 +199,7 @@ Next time, directly upload the `.clean` file.
 - Websites like [wigle.net](https://wigle.net/) collect information about Wi-Fi networks and their MAC addresses globally.
 
 **Forensic Analysis of MAC Addresses**
+
 - By analyzing the Windows registry, MAC addresses of routers (gateways) the PC connected to can be extracted.
 - These MAC addresses can be searched on platforms like wigle.net to potentially locate the geographic position of a network.
 - **Caution**: Access Points (APs) can be moved or reconfigured, so their location may not always be static.
@@ -211,11 +221,14 @@ Next time, directly upload the `.clean` file.
     - Lists programs that start automatically at system boot.
     - These programs start regardless of which user logs in.
     - Critical for identifying persistent malware or unauthorized applications.
+    
+---
 
 ## User Activities
 
 1. `NTUSER.DAT\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`  
    - Tracks all installed applications for the user.
+   - inserts the installed apps with the user setup.
 
 2. `NTUSER.DAT\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs`  
    - Tracks recently opened files by the user.  
@@ -235,7 +248,10 @@ Next time, directly upload the `.clean` file.
 
 5. `NTUSER.DAT\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist`  
    - Tracks executables run by the user.  
-   - **Note**: If only the application name is visible (without the path), it indicates the executable was run directly from the user's home directory.  
+   -  `{CEBFF...}` trace the execution of the app directly with a click on the .exe
+   - `{F4E57...}` trace the execution of applications by clicking on the .lnk
+
+   - **Note**: If only the application name is visible (without the path), it indicates the executable was run directly from START or Task Bar
    - **Historical Functionality**: Introduced in Windows XP and still present today, it tracks the most frequently used applications by the user.  
      - **Purpose**: Historically used to manage the population of the Windows Start Menu.  
      - Tracks detailed information about applications executed by each user.  
@@ -243,6 +259,7 @@ Next time, directly upload the `.clean` file.
      - Example: "Chrome was executed 17 times, was in focus at least 9 times, and was active for at least 9 minutes."  
      - These values may sometimes be reset or deleted by the OS under certain conditions.
 
+---
 
 ## LNK Files / Shortcut Files
 
@@ -338,6 +355,7 @@ Automatically scans `.lnk` files and entire folders, providing output in `.csv` 
 -  `Lecmd.exe –f “filename.lnk” `
 -  `Lecmd.exe –d <PATH-TO-FOLDER> --csv <PATH-TO-OUTPUT> `
 
+---
 
 ## Jumplists
 
@@ -386,6 +404,7 @@ Automatically scans `.lnk` files and entire folders, providing output in `.csv` 
 - `JLecmd.exe –f “AppID.automaticDestinations-ms”`
 - `JLecmd.exe –d <PATH-TO-FOLDER> --csv <PATH-TO-OUTPUT> -q`
 
+---
 
 ## USB Device Analysis
 
@@ -418,7 +437,7 @@ These identifiers are assigned by Microsoft to ensure compliance. Manufacturers 
    - This registry key contains a subkey for each connected device, represented by a string with VID, PID, and the last part of the string being the Volume Serial Number in hexadecimal format.  
    - To identify the physical device used, convert the hexadecimal Volume Serial Number and compare it with the Volume Serial Number found in `.lnk` file records.
 
-## Prefetch
+---
 
 ## Prefetch
 
@@ -457,6 +476,7 @@ Consider launching Google Chrome:
 
 This mechanism allows investigators to determine not only which applications were executed but also which files were accessed during their execution.
 
+---
 
 ## Internet Browsers
 
