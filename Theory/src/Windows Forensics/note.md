@@ -294,14 +294,14 @@ Types of .lnk Files
     a non-executable file (e.g., Word, Excel) is opened.
     Example: Opening a .docx file creates a .lnk file that contains metadata about the target file.
 
- - Use FTK (Forensic Toolkit) to mount the disk and navigate to the "Recent" folder.  
+Note: Use FTK (Forensic Toolkit) to mount the disk and navigate to the "Recent" folder.  
         > Accessing the folder locally may not be possible due to system restrictions.
-
-If the file is deleted, the shortcut link remains intact.  
 
 There are Windows tasks designed to delete the "Recent" folder.
 
-1. `%USERS%\<username>\AppData\Roaming\Microsoft\Windows\Recent`
+---
+
+1. `%USERS%\Sara M\AppData\Roaming\Microsoft\Windows\Recent`
 
 - For each non-executable file opened, the OS generates two `.lnk` files:
     1. One pointing to the target file.
@@ -419,7 +419,9 @@ Automatically scans `.lnk` files and entire folders, providing output in `.csv` 
 These identifiers are assigned by Microsoft to ensure compliance. Manufacturers must obtain VID and PID from Microsoft to create compliant devices.
 
    Each subkey represents the physical serial number of the USB device stored in its firmware.  
+   
    - If the registry contains a record with `Service=USBSTR`, it indicates that the USB device can store data.
+   - https://devicehunt.com/
 
 2. `SYSTEM\CurrentControlSet\ENUM\USBSTOR` 
    - Contains similar information as the previous registry path but with VID and PID explicitly written.  
@@ -434,8 +436,8 @@ These identifiers are assigned by Microsoft to ensure compliance. Manufacturers 
 
 4. `SOFTWARE\Microsoft\Windows NT\CurrentVersion\EMDMgmt` 
    - The Volume Serial Number changes every time a storage device is formatted.  
-   - This registry key contains a subkey for each connected device, represented by a string with VID, PID, and the last part of the string being the Volume Serial Number in hexadecimal format.  
-   - To identify the physical device used, convert the hexadecimal Volume Serial Number and compare it with the Volume Serial Number found in `.lnk` file records.
+   - This registry key contains a subkey for each connected device, represented by a string with VID, PID, and the last part of the string being the Volume Serial Number in decimal format.  
+   - To identify the physical device used, convert in  hexadecimal Volume Serial Number and compare it with the Volume Serial Number found in `.lnk` file records.
 
 ---
 
@@ -465,7 +467,7 @@ Parses Prefetch files to extract detailed information.
 - Tracks the number of times an executable has been launched (`Run Count`).
 - Provides timeline for the applications.
 
-- `PECmd.exe –d <PATH-TO-PREFETCH-FOLDER> --csv <PATH-TO-OUTPUT>`
+- `PECmd.exe –d <PATH-TO-PREFETCH-FOLDER> --csv <PATH-TO-OUTPUT> -q`
 - `PECmd.exe –f “filename.pf”`
 
 
