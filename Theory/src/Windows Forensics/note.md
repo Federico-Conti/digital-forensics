@@ -44,16 +44,16 @@ Note: the LAST MODIFIED is also when a file finishes downloading
 
 ## Windows Registry
 
-Ccliner è un tool per cancellare tutto il registro.
+Ccliner is a tool for deleting the entire registry.
 
+Every action on Windows modifies a value in a registry hive.  
+ > Example: A damaged registry file might result in the error "Cannot find the filesystem."
 
-- **Overview**: Every action on Windows modifies a value in a registry hive.  
-    > Example: A damaged registry file might result in the error "Cannot find the filesystem."
+**Key Features**:
 
-- **Key Features**:
-    - Each key modification updates a timestamp (last accessed time).  
+- Each key modification updates a timestamp (last accessed time).  
         > Note: `Regedit` does not display this field.
-    - Registry files cannot be modified directly, even with maximum privileges, as they are in use by the system.  
+- Registry files cannot be modified directly, even with maximum privileges, as they are in use by the system.  
         > Interaction with `Regedit` is mediated by the `System` user, which has write permissions.
 
 ### System Hives
@@ -61,7 +61,7 @@ Ccliner è un tool per cancellare tutto il registro.
 - `HKLM\SAM`: `%WINDIR%\System32\config\SAM`
 - `HKLM\SECURITY`: `%WINDIR%\System32\config\SECURITY`
 - `HKLM\SOFTWARE`: `%WINDIR%\System32\config\SOFTWARE`
-    > tipo di sistema operativo e qunado è stato installato
+    > type of operating system and when it was installed
 - `HKLM\SYSTEM`: `%WINDIR%\System32\config\SYSTEM`  
     > Contains system-wide settings, such as timezone configurations.
 
@@ -84,6 +84,7 @@ Ccliner è un tool per cancellare tutto il registro.
 To view the host PC's hives, ensure the application is running in administrator mode.
 
 **Handling Registry Files from External Images**
+
 When retrieving registry files from external images, you might encounter the following error message:  
 **"Primary and secondary sequence numbers do not match!"**
 
@@ -295,7 +296,7 @@ Types of .lnk Files
     Example: Opening a .docx file creates a .lnk file that contains metadata about the target file.
 
 Note: Use FTK (Forensic Toolkit) to mount the disk and navigate to the "Recent" folder.  
-        > Accessing the folder locally may not be possible due to system restrictions.
+> Accessing the folder locally may not be possible due to system restrictions.
 
 There are Windows tasks designed to delete the "Recent" folder.
 
@@ -336,10 +337,11 @@ Some records have missing TIME values. Why?
 - If the value is 0x0, the OS was unable to access the MFT of that file to save it.
 - This is not a processing/parsing error.
 
-In windows 11 when I create a vine file, I still create an .lnk file and therefore it is not associated with the first opening.
+In windows 11 when I create a file, I still create an .lnk file and therefore it is not associated with the first opening.
 
 
-**Volume Serial NUmber**
+**Volume Serial Number**
+
 When we format a storage device and create a volume, a Serial Number is generated and stored in the Volume Boot Record (VBR). The Volume Boot Record is located in the first 512 bytes of the volume and contains important metadata about the file system.
 
 This Serial Number is software-generated and is not tied to the physical hardware of the device. The hardware Serial Number, on the other hand, is embedded in the firmware of the storage device and is unique to the physical device itself.
@@ -504,13 +506,10 @@ Chrome stores user data in:
 [Hindsight GitHub Repository](https://github.com/obsidianforensics/hindsight) 
 
 - Parses the Chrome user profile folder.
-- C:\Users\user\Desktop\DF-sw>hindsight.exe -i "C:\Users\user\AppData\Local\Google\Chrome\User Data\Default" -o "C:\Users\user\EXTRACTED"
+- `C:\Users\user\Desktop\DF-sw>hindsight.exe -i "C:\Users\user\AppData\Local\Google\Chrome\User Data\Default" -o "C:\Users\user\EXTRACTED"`
 - Generates an `.xlsx` output containing a timeline of user actions.
 - Categorizes data from Chrome databases (e.g., history, cookies) for forensic analysis.
 
+Note:
 
-NOta:
-to get an idea of what the user has done we do not care
-
-- cache e cookie
-
+- get an idea of what the user has done we do not care cache e cookie
